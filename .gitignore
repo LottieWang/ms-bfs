@@ -1,0 +1,8 @@
+*.release.o
+.vscode/*
+bWidth.txt
+boost/*
+runBencher
+runBfs
+thread.txt
+thread8_bWidth.txt

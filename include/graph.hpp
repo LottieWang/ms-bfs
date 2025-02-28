@@ -201,6 +201,7 @@ public:
       personGraph.data = data;
       personGraph.numEdges = edges.size();
 
+      std::cout << "numPersons " << numPersons << " numEdges " << personGraph.numEdges << std::endl;
       LOG_PRINT("[LOADING] Created person graph of size: "<< dataSize/1024<<" kb");
 
       #ifdef DEBUG
@@ -272,7 +273,6 @@ private:
          // Check for overflow
          assert(componentId>0);
       }
-
       LOG_PRINT("[Query4] Max component size "<< maxComponentSize);
       std::cout<<"# Found number components "<< componentId-1<<" ("<<trivialComponents<<" are of size < 5)."<<std::endl;
    }

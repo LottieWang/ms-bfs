@@ -10,6 +10,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <thread>
+#include <functional>
+#include <iostream>
 
 class Task {
    // XXX: Everything should be const

@@ -1,6 +1,7 @@
 //Copyright (C) 2014 by Manuel Then, Moritz Kaufmann, Fernando Chirigati, Tuan-Anh Hoang-Vu, Kien Pham, Alfons Kemper, Huy T. Vo
 //
 //Code must not be used, distributed, without written consent by the authors
+#include <atomic>
 #include "../include/bfs/parabfs.hpp"
 #include "../include/TraceStats.hpp"
 
@@ -89,9 +90,10 @@ namespace Query4 {
             if (!PARABFSRunner::kdata->visited[v]) //This command would reduces executing atomic operations 
             {
 #if USE_ATOMIC
-              bool b = __sync_fetch_and_or(PARABFSRunner::kdata->visited+v, true);
+              // bool b = __sync_fetch_and_or(PARABFSRunner::kdata->visited+v, true);
               // for GCC >= 4.7, use the below instead
               // bool b = __atomic_fetch_or(visited+v, true, __ATOMIC_RELAXED);
+              bool b = __atomic_fetch_or(PARABFSRunner::kdata->visited+v, 1, __ATOMIC_RELAXED);
               if (!b)
               {
                 nqueue[nq++] = v;

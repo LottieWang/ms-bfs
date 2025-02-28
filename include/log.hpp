@@ -4,6 +4,7 @@
 #pragma once
 
 #include <iostream>
+#include <cstdint>
 
 namespace tschrono {
    typedef uint64_t Time;
@@ -27,7 +28,7 @@ namespace tschrono {
       #define LOG_PRINT(X) std::cerr<<tschrono::now()<<" "<<X<<std::endl
    #endif
 #else
-   #define LOG_PRINT(X)
+   #define LOG_PRINT(X) std::cout << X << std::endl;
 #endif
 
 #define FATAL_ERROR(X) std::cerr<<"FATAL: "<<X<<std::endl; throw -1

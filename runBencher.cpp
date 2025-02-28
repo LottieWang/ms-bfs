@@ -6,10 +6,46 @@
 
 #define GEN_BENCH_BRANCH(X,CTYPE,WIDTH) \
    X(batchType==sizeof(CTYPE)*8&&batchWidth==WIDTH) { \
+    std::cout << "batchType: " << batchType << " CTYPE: " << TypeName<CTYPE>::name() << " sizeof(CTYPE): " <<  sizeof(CTYPE) << " batchWidth: " << WIDTH << std::endl; \
       bencher = new SpecializedBFSBenchmark<Query4::HugeBatchBfs<CTYPE,WIDTH,false>>("BatchBFS "+std::to_string(sizeof(CTYPE)*8)+" ("+std::to_string(WIDTH)+")"); \
       maxBatchSize = sizeof(CTYPE)*8*WIDTH; \
       bfsType = std::to_string(sizeof(CTYPE)*8)+"_"+std::to_string(WIDTH); \
    } \
+
+template <typename T>
+struct TypeName {
+    static std::string name() { return "Unknown"; }
+};
+
+template <>
+struct TypeName<uint8_t> {
+    static std::string name() { return "uint8_t"; }
+};
+
+template <>
+struct TypeName<uint16_t> {
+    static std::string name() { return "uint16_t"; }
+};
+
+template <>
+struct TypeName<uint32_t> {
+    static std::string name() { return "uint32_t"; }
+};
+
+template <>
+struct TypeName<uint64_t> {
+    static std::string name() { return "uint64_t"; }
+};
+
+template <>
+struct TypeName<__m128i> {
+    static std::string name() { return "__m128i"; }
+};
+
+template <>
+struct TypeName<__m256i> {
+    static std::string name() { return "__m256i"; }
+};
 
 
 int main(int argc, char** argv) {
@@ -24,6 +60,7 @@ int main(int argc, char** argv) {
    size_t bfsLimit = argc>=7?std::stoi(std::string(argv[6])):std::numeric_limits<uint64_t>::max();
    bool checkNumTasks = argc>=8&&argv[7][0]=='f'?false:true;
    size_t numThreads = std::thread::hardware_concurrency()/2;
+   printf("hardware_concurrency: %d\n",std::thread::hardware_concurrency());
    if(argc>3) {
       numThreads = std::stoi(std::string(argv[3]));
    }
@@ -67,7 +104,7 @@ int main(int argc, char** argv) {
       GEN_BENCH_BRANCH(else if,uint16_t,32)
       GEN_BENCH_BRANCH(else if,uint16_t,1)
       GEN_BENCH_BRANCH(else if,uint8_t,64)
-      GEN_BENCH_BRANCH(else if,uint8_t,1)
+      GEN_BENCH_BRANCH(else if,uint8_t,1) 
       else {
          exit(-1);
       }
@@ -79,6 +116,7 @@ int main(int argc, char** argv) {
    for(unsigned i=0; i<queries.queries.size(); i++) {
       Query query = queries.queries[i];
       LOG_PRINT("[Main] Executing query "<<query.dataset);
+      LOG_PRINT("[Main] query.reference " << query.reference);
       auto personGraph = Graph<Query4::PersonId>::loadFromPath(query.dataset);
       if(bfsLimit>personGraph.size()) {
          bfsLimit=personGraph.size();
@@ -89,11 +127,11 @@ int main(int argc, char** argv) {
          auto desiredTasks=numThreads*3;
          if(ranges.size()<desiredTasks) {
             FATAL_ERROR("[Main] Not enough tasks! #Threads="<<numThreads<<", #Tasks="<<ranges.size()<<", #DesiredTasks="<<desiredTasks<<", #maxBatchSize="<<maxBatchSize);
-         }
+         } 
       }
-
       // Run benchmark
       std::cout<<"# Benchmarking "<<bencher->name<<" ... "<<std::endl<<"# ";
+      LOG_PRINT("[Main] bfsLimit " << bfsLimit);
       for(int i=0; i<numRuns; i++) {
          bencher->initTrace(personGraph.numVertices, personGraph.numEdges, numThreads, bfsLimit, bfsType);
          bencher->run(7, personGraph, query.reference, workers, bfsLimit);

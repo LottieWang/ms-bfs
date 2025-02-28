@@ -48,7 +48,7 @@ struct PARABFSRunner {
     uint32_t       personSize;
     uint32_t*      queue;
 
-    bool * visited;
+    uint8_t * visited;
 #if !USE_ATOMIC
     bool * visited2;
 #endif
@@ -70,7 +70,7 @@ struct PARABFSRunner {
     kdata->personSize = personSize;
 
     kdata->queue = (uint32_t*)malloc(sizeof(uint32_t)*kdata->personSize*(kdata->numThreads + 1));//Allocate n+1 queues
-    kdata->visited = (bool*)malloc(sizeof(bool)*kdata->personSize*2);
+    kdata->visited = (uint8_t*)malloc(sizeof(uint8_t)*kdata->personSize*2);
 #if !USE_ATOMIC
     kdata->visited2 = kdata->visited + kdata->personSize;
 #endif

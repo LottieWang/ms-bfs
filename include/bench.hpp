@@ -10,6 +10,7 @@
 #include "worker.hpp"
 #include "TraceStats.hpp"
 #include "bfs/parabfs.hpp"
+#include "bfs/batch64.hpp"
 
 struct Query {
    uint64_t numNodes;
@@ -88,6 +89,7 @@ struct SpecializedBFSBenchmark : public BFSBenchmark {
    { }
    virtual void run(const uint32_t k, const Query4::PersonSubgraph& subgraph, const string& referenceResult, Workers& workers, uint64_t maxBfs) override {
       uint64_t runtime;
+      LOG_PRINT("run SpecializedBFSBenchmark ");
       std::string result = runBFS<BFSRunnerT>(k, subgraph, workers, maxBfs, runtime
       #ifdef STATISTICS
          ,statistics

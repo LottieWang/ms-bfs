@@ -2,8 +2,6 @@
 ifeq ($(CC),cc)
 	CC=g++
 endif
-CC += -I/home/lwang323/ms-bfs/boost  # Add the Boost include path
-
 
 BOOSTDIR=./boost
 BOOST_INC=$(BOOSTDIR)
@@ -15,10 +13,6 @@ ifeq ($(UNAME), Linux)
 LDFLAGS+=-lrt
 endif
 
-# Linker flags
-LDFLAGS += -L/home/lwang323/ms-bfs/boost/stage/lib  # Add the Boost library path
-LDLIBS += -lboost_iostreams -lboost_system -lboost_thread -lboost_timer -lboost_chrono -pthread -lrt
-
 #Profiling CFLAGS
 MATH_FLAGS=-ffast-math -funsafe-math-optimizations -fassociative-math -ffinite-math-only -fno-signed-zeros
 ifeq ($(CC),g++)
@@ -26,13 +20,18 @@ ifeq ($(CC),g++)
 else
 	COMPILER_FLAGS=
 endif
-BASE_FLAGS=-g -std=c++11 -W -Wall -Wextra -pedantic $(MATH_FLAGS) -funroll-all-loops -fno-omit-frame-pointer $(COMPILER_FLAGS) -I$(BOOST_INC)
+# -W -Wall  -Wextra
+BASE_FLAGS=-g -std=c++11 -w -pedantic $(MATH_FLAGS) -funroll-all-loops -fno-omit-frame-pointer $(COMPILER_FLAGS) -I$(BOOST_INC)
 
 LOCAL_ARCH=-march=native
 RELEASE_ARCH=-march=native
-CFLAGS=$(LOCAL_ARCH) -O3 $(BASE_FLAGS) -DNDEBUG
-RELEASE_CFLAGS=$(RELEASE_ARCH) -O3 $(BASE_FLAGS) -DNDEBUG -DNDBGPRINT
+CFLAGS=$(LOCAL_ARCH) $(BASE_FLAGS) 
+# -DNDEBUG -O3 
+CFLAGS += -I/home/lwang323/ms-bfs/boost
+# RELEASE_CFLAGS=$(RELEASE_ARCH) -O3 $(BASE_FLAGS) -DNDEBUG -DNDBGPRINT
 LD_FLAGS=-Wl,-O1 -pthread
+LDFLAGS += -L/home/lwang323/ms-bfs/boost/stage/lib
+LDLIBS += -lboost_system -lboost_filesystem # Add other Boost libraries as needed
 
 # Source / Executable Variables
 CORE_SOURCES=graph.cpp io.cpp log.cpp scheduler.cpp bfs/naive.cpp bfs/sc2012.cpp bfs/parabfs.cpp bfs/noqueue.cpp bfs/batch64.cpp bfs/batch128.cpp bfs/batch256.cpp bfs/sse.cpp worker.cpp query4.cpp 
@@ -84,43 +83,45 @@ clean:
 	-rm *.gcda util/*.gdca
 
 $(EXECUTABLE_BENCH): $(ALL_SOURCES)
-	$(CC) $(RELEASE_CFLAGS) $(CORE_SOURCES) -fprofile-generate $< -o $(EXECUTABLE_BENCH_PROFILE) $(LD_FLAGS) $(LDLIBS)
+	$(CC) $(RELEASE_CFLAGS) $(CORE_SOURCES) -fprofile-generate $< -o $(EXECUTABLE_BENCH_PROFILE) $(LD_FLAGS) $(LIBS)
+# $(CC) $(CFLAGS) $(CORE_SOURCES) -fprofile-generate $< -o $(EXECUTABLE_BENCH_PROFILE) $(LD_FLAGS) $(LIBS)
 	./$(EXECUTABLE_BENCH_PROFILE) $(10K_QUERIES) 1 1
-	$(CC) $(RELEASE_CFLAGS) $(CORE_SOURCES) -fprofile-use $< -o $(EXECUTABLE_BENCH) $(LD_FLAGS) $(LDLIBS)
+#$(CC) $(CFLAGS) $(CORE_SOURCES) -fprofile-use $< -o $(EXECUTABLE_BENCH) $(LD_FLAGS) $(LIBS)
+	$(CC) $(RELEASE_CFLAGS) $(CORE_SOURCES) -fprofile-use $< -o $(EXECUTABLE_BENCH) $(LD_FLAGS) $(LIBS)
 	-rm *.gcda util/*.gcda
 	-rm $(EXECUTABLE_BENCH_PROFILE)
 
 $(EXECUTABLE_BENCH_THREADS): benchThreads.release.o $(RELEASE_OBJECTS) $(BOOST_LIBS)
 	@rm -f $(CORE_DEPS)
-	$(CC) benchThreads.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LDLIBS)
+	$(CC) benchThreads.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LIBS)
 
 $(EXECUTABLE_BENCHER): runBencher.release.o $(RELEASE_OBJECTS) $(BOOST_LIBS)
 	@rm -f $(CORE_DEPS)
-	$(CC) runBencher.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LDLIBS)
+	$(CC) runBencher.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LIBS)
 
 $(EXECUTABLE_BENCH_VARIANTS): benchVariants.release.o $(RELEASE_OBJECTS) $(BOOST_LIBS)
 	@rm -f $(CORE_DEPS)
-	$(CC) benchVariants.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LDLIBS)
+	$(CC) benchVariants.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LIBS)
 
 ifndef DEBUG
 $(EXEC_EXECUTABLE): main.release.o $(RELEASE_OBJECTS) $(BOOST_LIBS)
 	@rm -f $(CORE_DEPS)
-	$(CC) main.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LDLIBS)
+	$(CC) main.release.o $(RELEASE_OBJECTS) $(LDFLAGS) -o $@ $(LD_FLAGS) $(LIBS)
 else
 $(EXEC_EXECUTABLE): main.o $(CORE_OBJECTS)
 	@rm -f $(CORE_DEPS)
-	$(CC) main.o $(CORE_OBJECTS) -o $@ $(LD_FLAGS) $(LDLIBS)
+	$(CC) main.o $(CORE_OBJECTS) -o $@ $(LD_FLAGS) $(LIBS)
 endif
 
 %.release.o: %.cpp
-	$(CC) $(RELEASE_CFLAGS) $(LDFLAGS) -c $< -o $@ $(LDLIBS)
+	$(CC) $(RELEASE_CFLAGS) $(LDFLAGS) -c $< -o $@ $(LIBS)
 
 .cpp.o:
-	$(CC) $(CFLAGS) -DTRACE -c $< -o $@ $(LDLIBS)
+	$(CC) $(CFLAGS) -DTRACE -c $< -o $@ $(LIBS)
 
 
 %.depends: %.cpp
-	@$(CC) -M $(CFLAGS) -c $< > $@ $(LDLIBS)
+	@$(CC) -M $(CFLAGS) -c $< > $@ $(LIBS)
 
 # Test data rules
 test_env: $(TEST_DATA_PATH)
