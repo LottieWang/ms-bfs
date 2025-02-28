@@ -221,6 +221,103 @@ public:
       }
    }
 };
+
+template<typename BFSRunnerT>
+struct MorselTaskSimple {
+private:
+   const uint32_t rangeStart;
+   const uint32_t rangeEnd;
+
+   size_t batchSize;
+
+//    QueryState& state;
+   vector<double>& results;
+   const PersonSubgraph& subgraph;
+   vector<PersonId>& sources;
+   const uint64_t startTime;
+
+
+   #ifdef STATISTICS
+   BatchStatistics& statistics;
+   #endif
+
+public:
+   MorselTaskSimple(vector<double>& results, PersonId rangeStart, PersonId rangeEnd, const PersonSubgraph& subgraph, vector<PersonId>& sources, uint64_t startTime
+      #ifdef STATISTICS
+      , BatchStatistics& statistics
+      #endif
+      )
+      : results(results), rangeStart(rangeStart), rangeEnd(rangeEnd), subgraph(subgraph), sources(sources), startTime(startTime)
+      #ifdef STATISTICS
+      , statistics(statistics)
+      #endif
+   {
+      batchSize = BFSRunnerT::batchSize();
+      if(batchSize>getMaxMorselBatchSize()) {
+         batchSize=getMaxMorselBatchSize();
+      }
+   }
+
+   //Returns pair of processed persons and whether the bound was updated
+   uint32_t processPersonBatch(PersonId begin, PersonId end) {
+      // Build batch with the desired size
+      vector<BatchBFSdata> batchData;
+      batchData.reserve(batchSize);
+
+      PersonId index=begin;
+      for(; batchData.size()<batchSize && index<end; index++) {
+         PersonId subgraphPersonId = sources[index];
+
+         const uint32_t componentSize = subgraph.componentSizes[subgraph.personComponents[subgraphPersonId]];
+
+         BatchBFSdata personData(subgraphPersonId, componentSize);
+
+         batchData.push_back(move(personData));
+      }
+      const uint32_t last = index-1;
+      // #endif
+
+      if(batchData.size()>0) {
+         //Run BFS
+         BFSRunnerT::runBatch(batchData, subgraph
+            #ifdef STATISTICS
+            , statistics
+            #endif
+            );
+         PersonId idx = begin; 
+         for(auto bIter=batchData.begin(); bIter!=batchData.end(); bIter++) {
+            const auto closeness = getCloseness(bIter->componentSize, bIter->totalDistances, bIter->totalReachable);
+            // const PersonId externalPersonId = bIter->person;
+            // CentralityResult resultCentrality(externalPersonId, bIter->totalDistances, bIter->totalReachable, closeness);
+            results[idx]=closeness;
+            idx++;
+         }
+      }
+      return last-begin+1;
+   }
+
+   void operator()() {
+      if(rangeEnd<rangeStart) {
+         FATAL_ERROR("[MorselTask] Fail! Invalid task range: "<<rangeStart<<"-"<<rangeEnd);
+      }
+
+      #ifdef OUTPUT_PROGRESS
+      static std::mutex m;
+      {
+         std::lock_guard<std::mutex> lock(m);
+         std::cout<<"#"<<rangeStart<<" @ "<<tschrono::now() - startTime<<std::endl;
+      }
+      #endif
+
+      PersonId person=rangeStart;
+      while(person<rangeEnd) {
+         const auto batchResult = processPersonBatch(person, rangeEnd);
+         person += batchResult;
+      }
+   }
+};
+
+
 }
 
 std::vector<pair<Query4::PersonId,Query4::PersonId>> generateTasks(const uint64_t maxBfs, const Query4::PersonId graphSize, const size_t batchSize);
@@ -310,4 +407,62 @@ std::string runBFS(const uint32_t k, const Query4::PersonSubgraph& subgraph, Wor
    delete[] resultChar;
 
    return std::string(resultStr);
+}
+
+// The input contains the sources want to run closeness centrality, and filling their closeness centrality. 
+template<typename BFSRunnerT>
+void runBFS(const Query4::PersonSubgraph& subgraph, std::vector<Query4::PersonId>& sources, std::vector<double>& closeness, Workers& workers, uint64_t& runtimeOut
+   ) {
+
+    uint64_t maxBfs = sources.size();
+   const auto start = tschrono::now();
+
+   // Create bfs tasks from specified subset
+   TaskGroup tasks;
+   uint64_t numTraversedEdges = 0;
+   auto ranges = generateTasks(maxBfs, subgraph.size(), BFSRunnerT::batchSize());
+   for(auto& range : ranges) {
+      Query4::MorselTaskSimple<BFSRunnerT> bfsTask(closeness, range.first, range.second, subgraph, sources,  start
+         #ifdef STATISTICS
+         , statistics
+         #endif
+         );
+      tasks.schedule(LambdaRunner::createLambdaTask(bfsTask));
+
+      for(Query4::PersonId i=range.first; i<range.second; i++) {
+         numTraversedEdges += subgraph.componentEdgeCount[subgraph.personComponents[sources[i]]];
+      }
+   }
+   TraceStats<BFSRunnerT::batchSize()>& stats = TraceStats<BFSRunnerT::batchSize()>::getStats();
+   stats.setNumTraversedEdges(numTraversedEdges);
+
+   //std::cout << "# TaskStats "<<maxBfs<<", "<<ranges.size()<< std::endl;
+
+//    const char* resultChar;
+//    tasks.join(LambdaRunner::createLambdaTask(move(Query4::ResultConcatenator(queryState, resultChar
+//        #ifdef STATISTICS
+//          , statistics
+//          #endif
+//          ))));
+
+   LOG_PRINT("[Query4] Scheduling "<< ranges.size() << " tasks.");
+   Scheduler scheduler;
+   scheduler.schedule(tasks.close());
+   scheduler.setCloseOnEmpty();
+
+   workers.assist(scheduler);
+
+   // Always run one executor on the main thread
+   Executor executor(scheduler,0, false);
+   executor.run();
+
+   runtimeOut = tschrono::now() - start;
+
+   scheduler.waitAllFinished();
+   LOG_PRINT("[Query4] All tasks finished");
+
+//    std::string resultStr = std::string(resultChar);
+//    delete[] resultChar;
+
+//    return std::string(resultStr);
 }

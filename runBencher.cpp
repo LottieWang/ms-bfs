@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
 
    //size_t bfsLimit = std::numeric_limits<uint64_t>::max();
    size_t bfsLimit = argc>=7?std::stoi(std::string(argv[6])):std::numeric_limits<uint64_t>::max();
+   printf("bfsLimit: %lu\n", bfsLimit);
    bool checkNumTasks = argc>=8&&argv[7][0]=='f'?false:true;
    size_t numThreads = std::thread::hardware_concurrency()/2;
    printf("hardware_concurrency: %d\n",std::thread::hardware_concurrency());
@@ -132,15 +133,28 @@ int main(int argc, char** argv) {
       // Run benchmark
       std::cout<<"# Benchmarking "<<bencher->name<<" ... "<<std::endl<<"# ";
       LOG_PRINT("[Main] bfsLimit " << bfsLimit);
+      vector<Query4::PersonId> sources(bfsLimit);
+      vector<double> closeness(bfsLimit,0.0);
+      for (Query4::PersonId i = 0; i<bfsLimit; i++){
+        sources[i]=i;
+      }
+
       for(int i=0; i<numRuns; i++) {
          bencher->initTrace(personGraph.numVertices, personGraph.numEdges, numThreads, bfsLimit, bfsType);
-         bencher->run(7, personGraph, query.reference, workers, bfsLimit);
+        //  bencher->run(7, personGraph, query.reference, workers, bfsLimit);
+        bencher->runSimple(personGraph, sources, closeness, workers);
+
          std::cout<<bencher->lastRuntime()<<"ms ";
          std::cout.flush();
       }
       std::cout<<std::endl;
 
       std::cout<<bencher->getMinTrace()<<std::endl;
+    
+    //  Print the sources and corresponding closeness centrality 
+    //   for (int i = 0;i<bfsLimit; i++){
+    //     printf("%u: %lf\n",sources[i], closeness[i]);
+    //   }
    }
 
    workers.close();
