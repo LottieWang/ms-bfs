@@ -1,7 +1,6 @@
 *.release.o
 .vscode/*
 bWidth.txt
-boost/*
 runBencher
 runBfs
 thread.txt
