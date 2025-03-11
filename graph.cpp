@@ -4,6 +4,7 @@
 #include "include/tokenizer.hpp"
 #include "include/graph.hpp"
 #include "include/io.hpp"
+#include <fstream>
 
 #include <algorithm>
 
@@ -79,3 +80,47 @@ GraphData GraphData::loadFromPath(const std::string& edgesFile) {
 
    return GraphData(nextNodeId, move(uniqueEdges), move(revNodeRenaming));
 }
+
+
+GraphData GraphData::loadBinaryFromPath(const std::string& edgesFile) {
+    std::ifstream ifs(edgesFile);
+    if (!ifs.is_open()) {
+      cerr << "Error: Cannot open file " << edgesFile << '\n';
+      abort();
+    }
+    size_t n, m, sizes;
+    ifs.read(reinterpret_cast<char*>(&n), sizeof(size_t));
+    ifs.read(reinterpret_cast<char*>(&m), sizeof(size_t));
+    ifs.read(reinterpret_cast<char*>(&sizes), sizeof(size_t));
+    assert(sizes == (n + 1) * 8 + m * 4 + 3 * 8);
+
+    std::vector<uint64_t> offset(n + 1);
+    std::vector<uint32_t> edge(m);
+    ifs.read(reinterpret_cast<char*>(offset.data()), (n + 1) * 8);
+    ifs.read(reinterpret_cast<char*>(edge.data()), m * 4);
+    if (ifs.peek() != EOF) {
+      cerr << "Error: Bad data\n";
+      abort();
+    }
+    ifs.close();
+
+    vector<NodePair> edges;
+    edges.reserve(m);
+ 
+    
+    for (uint64_t i = 0; i< n; i++){
+        for (uint64_t j = offset[i]; j<offset[i+1]; j++){
+            edges.push_back(NodePair(i,edge[j]));
+        }
+    }
+
+    std::unordered_map<uint64_t,uint64_t> revNodeRenaming;
+    for (uint64_t i = 0; i<n; i++){
+        revNodeRenaming[i]=i;
+    }
+
+    LOG_PRINT("[LOADING] Number of nodes: "<<n);
+    
+    return GraphData(n, move(edges), move(revNodeRenaming));
+ }
+ 

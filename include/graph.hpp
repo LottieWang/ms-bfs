@@ -38,6 +38,7 @@ struct GraphData {
    GraphData(GraphData&& other) = default;
 
    static GraphData loadFromPath(const std::string& edgesFile);
+   static GraphData loadBinaryFromPath(const std::string& edgesFile);
 };
 
 template<class EntryType>
@@ -169,7 +170,14 @@ public:
    }
 
    static Graph loadFromPath(const std::string& edgesFile) {
-      GraphData graphData = GraphData::loadFromPath(edgesFile);
+      size_t idx = edgesFile.find_last_of('.');
+      if (idx == std::string::npos){
+        std::cerr<<"Error: No graph extension provided\n";
+        abort();
+      }
+      std::string subfix = edgesFile.substr(idx+1);
+      bool binary = (subfix=="bin");
+      GraphData graphData = binary? GraphData::loadBinaryFromPath(edgesFile): GraphData::loadFromPath(edgesFile);
       IdType numPersons = graphData.numNodes;
       std::vector<NodePair>& edges = graphData.edges;
 

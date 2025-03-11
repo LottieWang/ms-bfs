@@ -128,7 +128,7 @@ void Executor::run() {
    CPU_SET(coreId, &cpuset);
    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 
-   LOG_PRINT("[Executor] Starting");
+//    LOG_PRINT("[Executor] Starting");
    scheduler.registerThread();
    while(true) {
       auto task = scheduler.getTask(preferIO);
@@ -138,7 +138,7 @@ void Executor::run() {
       delete task;
    }
    scheduler.unregisterThread();
-   LOG_PRINT("[Executor] Stopping");
+//    LOG_PRINT("[Executor] Stopping");
 }
 
 void* Executor::start(void* argument) {

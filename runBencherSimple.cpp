@@ -3,6 +3,8 @@
 //Code must not be used, distributed, without written consent by the authors
 #include "include/bench.hpp"
 #include "include/TraceStats.hpp"
+#include "parseCommandLine.h"
+#include <fstream>
 
 #define GEN_BENCH_BRANCH(X,CTYPE,WIDTH) \
    X(batchType==sizeof(CTYPE)*8&&batchWidth==WIDTH) { \
@@ -47,50 +49,91 @@ struct TypeName<__m256i> {
     static std::string name() { return "__m256i"; }
 };
 
+template <typename Out>
+void split(const std::string& s, char delim, Out result) {
+    std::istringstream iss(s);
+    std::string item;
+    while (std::getline(iss, item, delim)) {
+      *result++ = item;
+    }
+}
+  
+vector<Query4::PersonId> split(const std::string& s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, std::back_inserter(elems));
+    vector<Query4::PersonId> seeds;
+    for (size_t i = 0; i < elems.size(); i++) {
+      seeds.push_back(stoi(elems[i]));
+    }
+    return seeds;
+}
+
+vector<Query4::PersonId> loadSource(const std::string& file) {
+    std::ifstream fin(file);
+    // int k=200;
+    size_t r;
+    string pattern = "seeds:";
+    string strLine;
+    string line;
+    if (!getline(fin, line)){
+        cerr<<"Can not read source file " << file << std::endl;
+        abort();
+    }
+    auto seeds = split(line, ' ');
+    LOG_PRINT("[LOADING] Loading sources with size "<< seeds.size());
+    return seeds;
+  }
 
 int main(int argc, char** argv) {
-    if(argc!=6 && argc!=7 && argc!=8) {
-      FATAL_ERROR("Not enough parameters");
+   auto usage = "Usage: runBencherSimple <filename> <BFSType> <sourceFile> -W <bWidth> -t <repeat> -f ";
+   CommandLine P(argc, argv);
+
+   if (argc < 4) {
+    cerr << "Usage: " << usage << std::endl;
+    abort();
    }
-
-   Queries queries = Queries::loadFromFile(std::string(argv[1]));
-   const int numRuns = std::stoi(std::string(argv[2]));
-
-   //size_t bfsLimit = std::numeric_limits<uint64_t>::max();
-   size_t bfsLimit = argc>=7?std::stoi(std::string(argv[6])):std::numeric_limits<uint64_t>::max();
-   printf("bfsLimit: %lu\n", bfsLimit);
-   bool checkNumTasks = argc>=8&&argv[7][0]=='f'?false:true;
+   
    size_t numThreads = std::thread::hardware_concurrency()/2;
    printf("hardware_concurrency: %d\n",std::thread::hardware_concurrency());
-   if(argc>3) {
-      numThreads = std::stoi(std::string(argv[3]));
-   }
+   
+
    LOG_PRINT("[Main] Using "<< numThreads <<" threads");
+
+   // Load input graphs and sources
+   std::string graphFile = argv[1];
+   std::string sourceFile = argv[3];
+   auto personGraph = Graph<Query4::PersonId>::loadFromPath(graphFile);
+   auto sources = loadSource(sourceFile);
+
+   size_t bfsLimit = sources.size();
+   int numRuns=P.getOptionInt("-t", 3);
+
 
    size_t maxBatchSize;
    BFSBenchmark* bencher;
    std::string bfsType;
    Query4::PARABFSRunner::setThreadNum(numThreads);//Using threads inside BFS
-   if(std::string(argv[4])=="naive") {
+   if(std::string(argv[2])=="naive") {
       bencher = new SpecializedBFSBenchmark<Query4::BFSRunner>("BFSRunner");
       maxBatchSize = 1;
       bfsType = "naive";
-   } else if(std::string(argv[4])=="noqueue") {
+   } else if(std::string(argv[2])=="noqueue") {
       bencher = new SpecializedBFSBenchmark<Query4::NoQueueBFSRunner>("NoQueueBFSRunner");
       maxBatchSize = 1;
       bfsType = "noqueue";
-   } else if(std::string(argv[4])=="scbfs") {
+   } else if(std::string(argv[2])=="scbfs") {
       bencher = new SpecializedBFSBenchmark<Query4::SCBFSRunner>("SCBFSRunner");
       maxBatchSize = 1;
       bfsType = "scbfs";
-   } else if(std::string(argv[4])=="parabfs") {
+   } else if(std::string(argv[2])=="parabfs") {
       bencher = new SpecializedBFSBenchmark<Query4::PARABFSRunner>("PARABFSRunner");
       maxBatchSize = 1;
       bfsType = "parabfs";
       numThreads = 1;
    } else {
-      const int batchType = std::stoi(std::string(argv[4]));
-      const int batchWidth = std::stoi(std::string(argv[5]));
+      const int batchType = std::stoi(std::string(argv[2]));
+    //   const int batchWidth = std::stoi(std::string(argv[5]));
+      const int batchWidth = P.getOptionInt("-W", 1);
       GEN_BENCH_BRANCH(if,__m128i,8)
       GEN_BENCH_BRANCH(else if,__m128i,4)
       GEN_BENCH_BRANCH(else if,__m128i,1)
@@ -111,14 +154,11 @@ int main(int argc, char** argv) {
       }
    }
 
-   // Allocate additional worker threads
-   Workers workers(numThreads-1);
+    // Allocate additional worker threads
+    Workers workers(numThreads-1);
 
-   for(unsigned i=0; i<queries.queries.size(); i++) {
-      Query query = queries.queries[i];
-      LOG_PRINT("[Main] Executing query "<<query.dataset);
-      LOG_PRINT("[Main] query.reference " << query.reference);
-      auto personGraph = Graph<Query4::PersonId>::loadFromPath(query.dataset);
+    bool checkNumTasks = P.getOption("-f");
+    
       if(bfsLimit>personGraph.size()) {
          bfsLimit=personGraph.size();
       }
@@ -133,16 +173,11 @@ int main(int argc, char** argv) {
       // Run benchmark
       std::cout<<"# Benchmarking "<<bencher->name<<" ... "<<std::endl<<"# ";
       LOG_PRINT("[Main] bfsLimit " << bfsLimit);
-    //   vector<Query4::PersonId> sources(bfsLimit);
-    //   vector<double> closeness(bfsLimit,0.0);
-    //   for (Query4::PersonId i = 0; i<bfsLimit; i++){
-    //     sources[i]=i;
-    //   }
+      vector<double> closeness(bfsLimit,0.0);
 
       for(int i=0; i<numRuns; i++) {
          bencher->initTrace(personGraph.numVertices, personGraph.numEdges, numThreads, bfsLimit, bfsType);
-         bencher->run(7, personGraph, query.reference, workers, bfsLimit);
-        // bencher->runSimple(personGraph, sources, closeness, workers);
+        bencher->runSimple(personGraph, sources, closeness, workers);
 
          std::cout<<bencher->lastRuntime()<<"ms ";
          std::cout.flush();
@@ -152,10 +187,9 @@ int main(int argc, char** argv) {
       std::cout<<bencher->getMinTrace()<<std::endl;
     
     //  Print the sources and corresponding closeness centrality 
-    //   for (int i = 0;i<bfsLimit; i++){
-    //     printf("%u: %lf\n",sources[i], closeness[i]);
-    //   }
-   }
+      for (int i = 0;i<bfsLimit; i++){
+        printf("%u: %lf\n",sources[i], closeness[i]);
+      }
 
    workers.close();
 
