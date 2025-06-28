@@ -30,7 +30,7 @@ def experiment():
 	os.makedirs(ECC_DIR, exist_ok=True)
 	# type_names = ["1Phase", "2Phase", "Exact"]
 	type_names = [8]
-	batch_sizes = [64, 1024, 4096, 16384]
+	batch_sizes = [64, 1024, 4096]
 	for k in batch_sizes:
 		print(f"--------test on batch_size {k}---------")
 		for type_name in type_names:
