@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
     auto personGraph = Graph<Query4::PersonId>::loadFromPath(graphFile);
     //  auto sources = loadSource(sourceFile);
 
-    size_t bfsLimit = atoi(argv[3]);
+    size_t bfsLimit = P.getOptionInt("-k", 64);
     int numRuns=P.getOptionInt("-t", 3);
     char* outFile = P.getOptionValue("-out");
     if(bfsLimit>personGraph.size()) {
