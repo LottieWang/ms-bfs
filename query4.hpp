@@ -411,7 +411,7 @@ std::string runBFS(const uint32_t k, const Query4::PersonSubgraph& subgraph, Wor
 
 // The input contains the sources want to run closeness centrality, and filling their closeness centrality. 
 template<typename BFSRunnerT>
-void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double>& closeness, Workers& workers, uint64_t& runtimeOut
+void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double>& closeness, Workers& workers, uint64_t& runtimeOut, vector<Query4::PersonId>& sources
    ) {
     uint64_t maxBfs = k;
     // Determine bfs order
@@ -429,6 +429,9 @@ void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double
    // TwoHopDegreeOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);
    //AdvancedNeighborOrdering::order(ids, BFSRunnerT::batchSize(), subgraph);
    //NeighourDegreeOrdering::order(ids, BFSRunnerT::batchSize(), subgraph);
+   for (int i = 0; i < sources.size(); i++) {
+      sources[i]= ids[i];
+   }
    LOG_PRINT("[Query4] Finished sort "<<tschrono::now());
    
    const auto start = tschrono::now();

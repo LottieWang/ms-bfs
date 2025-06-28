@@ -67,7 +67,7 @@ struct BFSBenchmark {
 
    virtual void run(const uint32_t k, const Query4::PersonSubgraph& subgraph, const string& referenceResult, Workers& workers, uint64_t maxBfs) = 0;
 
-   virtual void runSimple(const uint32_t k, const Query4::PersonSubgraph& subgraph, std::vector<double>& closeness, Workers& workers)=0;
+   virtual void runSimple(const uint32_t k, const Query4::PersonSubgraph& subgraph, std::vector<double>& closeness, Workers& workers, vector<Query4::PersonId>& sources)=0;
 
    virtual size_t batchSize() = 0;
 
@@ -107,10 +107,10 @@ struct SpecializedBFSBenchmark : public BFSBenchmark {
       traces.push_back(stats.print(runtime));
    }
    // k is the number of sources to run BFS on
-   virtual void runSimple(uint32_t k, const Query4::PersonSubgraph& subgraph, std::vector<double>& closeness, Workers& workers) override{
+   virtual void runSimple(uint32_t k, const Query4::PersonSubgraph& subgraph, std::vector<double>& closeness, Workers& workers, vector<Query4::PersonId>& sources) override{
       uint64_t runtime;
       LOG_PRINT("run SpecializedBFSBenchmarkSimple ");
-      runBFS<BFSRunnerT>(subgraph, k, closeness, workers, runtime);
+      runBFS<BFSRunnerT>(subgraph, k, closeness, workers, runtime, sources);
       runtimes.push_back(runtime);
       RunnerTraceStats& stats = RunnerTraceStats::getStats();
       traces.push_back(stats.print(runtime));

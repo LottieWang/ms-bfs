@@ -5,6 +5,7 @@
 #include "include/TraceStats.hpp"
 #include "parseCommandLine.h"
 #include <fstream>
+#include <iomanip>
 
 #define GEN_BENCH_BRANCH(X,CTYPE,WIDTH) \
    X(batchType==sizeof(CTYPE)*8&&batchWidth==WIDTH) { \
@@ -99,16 +100,18 @@ int main(int argc, char** argv) {
 
    LOG_PRINT("[Main] Using "<< numThreads <<" threads");
 
-   // Load input graphs and sources
-   std::string graphFile = argv[1];
-  //  std::string sourceFile = argv[3];
-   auto personGraph = Graph<Query4::PersonId>::loadFromPath(graphFile);
-  //  auto sources = loadSource(sourceFile);
+    // Load input graphs and sources
+    std::string graphFile = argv[1];
+    //  std::string sourceFile = argv[3];
+    auto personGraph = Graph<Query4::PersonId>::loadFromPath(graphFile);
+    //  auto sources = loadSource(sourceFile);
 
-   size_t bfsLimit = atoi(argv[3]);
-   int numRuns=P.getOptionInt("-t", 3);
-   char* outFile = P.getOptionValue("-out");
-
+    size_t bfsLimit = atoi(argv[3]);
+    int numRuns=P.getOptionInt("-t", 3);
+    char* outFile = P.getOptionValue("-out");
+    if(bfsLimit>personGraph.size()) {
+      bfsLimit=personGraph.size();
+    }
 
    size_t maxBatchSize;
    BFSBenchmark* bencher;
@@ -153,16 +156,10 @@ int main(int argc, char** argv) {
       else {
          exit(-1);
       }
-   }
 
-    // Allocate additional worker threads
-    Workers workers(numThreads-1);
-
-    bool checkNumTasks = P.getOption("-f");
+      bool checkNumTasks =! P.getOption("-f");
     
-      if(bfsLimit>personGraph.size()) {
-         bfsLimit=personGraph.size();
-      }
+      
       if(checkNumTasks)
       {
          auto ranges = generateTasks(bfsLimit, personGraph.size(), maxBatchSize);
@@ -171,14 +168,20 @@ int main(int argc, char** argv) {
             FATAL_ERROR("[Main] Not enough tasks! #Threads="<<numThreads<<", #Tasks="<<ranges.size()<<", #DesiredTasks="<<desiredTasks<<", #maxBatchSize="<<maxBatchSize);
          } 
       }
+   }
+
+    // Allocate additional worker threads
+    Workers workers(numThreads-1);
+
       // Run benchmark
       std::cout<<"# Benchmarking "<<bencher->name<<" ... "<<std::endl<<"# ";
       LOG_PRINT("[Main] bfsLimit " << bfsLimit);
       vector<double> closeness(bfsLimit,0.0);
+      vector<Query4::PersonId> sources(bfsLimit);
 
       for(int i=0; i<numRuns; i++) {
          bencher->initTrace(personGraph.numVertices, personGraph.numEdges, numThreads, bfsLimit, bfsType);
-         bencher->runSimple(bfsLimit, personGraph, closeness, workers);
+         bencher->runSimple(bfsLimit, personGraph, closeness, workers, sources);
 
          std::cout<<bencher->lastRuntime()<<"ms ";
          std::cout.flush();
@@ -187,6 +190,17 @@ int main(int argc, char** argv) {
 
       std::cout<<bencher->getMinTrace()<<std::endl;
     
+      if (P.getOption("-out")) {
+         std::ofstream fout(outFile);
+         if (!fout.is_open()) {
+            std::cerr << "Error opening output file: " << outFile << std::endl;
+            abort();
+         }
+         for (int i = 0; i < bfsLimit; i++) {
+            fout << sources[i] << ": " << std::fixed << std::setprecision(10) << closeness[i] << std::endl;
+         }
+         fout.close();
+      }
     //  Print the sources and corresponding closeness centrality 
       // for (int i = 0;i<bfsLimit; i++){
       //   printf("%u: %lf\n",sources[i], closeness[i]);
@@ -194,7 +208,7 @@ int main(int argc, char** argv) {
 
    workers.close();
 
-   if(std::string(argv[4])=="parabfs") {
+   if(bfsType=="parabfs") {
      Query4::PARABFSRunner::finish();
    }
    return 0;
