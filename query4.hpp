@@ -233,7 +233,7 @@ private:
 //    QueryState& state;
    vector<double>& results;
    const PersonSubgraph& subgraph;
-   vector<PersonId>& sources;
+	 const vector<PersonId>& ids;
    const uint64_t startTime;
 
 
@@ -242,12 +242,12 @@ private:
    #endif
 
 public:
-   MorselTaskSimple(vector<double>& results, PersonId rangeStart, PersonId rangeEnd, const PersonSubgraph& subgraph, vector<PersonId>& sources, uint64_t startTime
+   MorselTaskSimple(vector<double>& results, PersonId rangeStart, PersonId rangeEnd, const PersonSubgraph& subgraph, vector<PersonId>& ids, uint64_t startTime
       #ifdef STATISTICS
       , BatchStatistics& statistics
       #endif
       )
-      : results(results), rangeStart(rangeStart), rangeEnd(rangeEnd), subgraph(subgraph), sources(sources), startTime(startTime)
+      : results(results), rangeStart(rangeStart), rangeEnd(rangeEnd), subgraph(subgraph), ids(ids), startTime(startTime)
       #ifdef STATISTICS
       , statistics(statistics)
       #endif
@@ -266,7 +266,7 @@ public:
 
       PersonId index=begin;
       for(; batchData.size()<batchSize && index<end; index++) {
-         PersonId subgraphPersonId = sources[index];
+         PersonId subgraphPersonId = ids[index];
 
          const uint32_t componentSize = subgraph.componentSizes[subgraph.personComponents[subgraphPersonId]];
 
@@ -411,10 +411,26 @@ std::string runBFS(const uint32_t k, const Query4::PersonSubgraph& subgraph, Wor
 
 // The input contains the sources want to run closeness centrality, and filling their closeness centrality. 
 template<typename BFSRunnerT>
-void runBFS(const Query4::PersonSubgraph& subgraph, std::vector<Query4::PersonId>& sources, std::vector<double>& closeness, Workers& workers, uint64_t& runtimeOut
+void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double>& closeness, Workers& workers, uint64_t& runtimeOut
    ) {
+    uint64_t maxBfs = k;
+    // Determine bfs order
+   std::vector<Query4::PersonId> ids(subgraph.size());
+   for (unsigned i = 0; i < subgraph.size(); ++i) {
+      ids[i] = i;
+   }
 
-    uint64_t maxBfs = sources.size();
+   // Deterministic random shuffeling
+   RandomNodeOrdering::order(ids, BFSRunnerT::batchSize(), subgraph);
+   // Do final ordering on specified subset
+   LOG_PRINT("[Query4] Starting sort "<<tschrono::now());
+   // ComponentOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);
+   DegreeOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);
+   // TwoHopDegreeOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);
+   //AdvancedNeighborOrdering::order(ids, BFSRunnerT::batchSize(), subgraph);
+   //NeighourDegreeOrdering::order(ids, BFSRunnerT::batchSize(), subgraph);
+   LOG_PRINT("[Query4] Finished sort "<<tschrono::now());
+   
    const auto start = tschrono::now();
 
    // Create bfs tasks from specified subset
@@ -422,7 +438,7 @@ void runBFS(const Query4::PersonSubgraph& subgraph, std::vector<Query4::PersonId
    uint64_t numTraversedEdges = 0;
    auto ranges = generateTasks(maxBfs, subgraph.size(), BFSRunnerT::batchSize());
    for(auto& range : ranges) {
-      Query4::MorselTaskSimple<BFSRunnerT> bfsTask(closeness, range.first, range.second, subgraph, sources,  start
+      Query4::MorselTaskSimple<BFSRunnerT> bfsTask(closeness, range.first, range.second, subgraph, ids, start
          #ifdef STATISTICS
          , statistics
          #endif
@@ -430,7 +446,7 @@ void runBFS(const Query4::PersonSubgraph& subgraph, std::vector<Query4::PersonId
       tasks.schedule(LambdaRunner::createLambdaTask(bfsTask));
 
       for(Query4::PersonId i=range.first; i<range.second; i++) {
-         numTraversedEdges += subgraph.componentEdgeCount[subgraph.personComponents[sources[i]]];
+         numTraversedEdges += subgraph.componentEdgeCount[subgraph.personComponents[ids[i]]];
       }
    }
    TraceStats<BFSRunnerT::batchSize()>& stats = TraceStats<BFSRunnerT::batchSize()>::getStats();

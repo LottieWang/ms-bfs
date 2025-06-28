@@ -49,9 +49,11 @@ size_t getMaxMorselBatchSize() {
 }
 
 double getCloseness(uint32_t totalPersons,uint64_t totalDistances,uint32_t totalReachable) {
-   return (totalDistances>0 && totalReachable>0 && totalPersons>0)
-            ? static_cast<double>((totalReachable-1)*(totalReachable-1)) / (static_cast<double>((totalPersons-1))*totalDistances)
+   double ans = (totalDistances>0 && totalReachable>0 && totalPersons>0)
+            ? static_cast<double>((totalReachable-1.0)*(totalReachable-1.0)) / (static_cast<double>((totalPersons-1.0))*totalDistances)
             : 0.0;
+    // std::cout<<"[Query4] totalPersons: "<<totalPersons<<", totalDistances "<<totalDistances<<" , totalReachable "<<totalReachable<< ", ans " << ans<<std::endl;
+    return ans;
 }
 
 

@@ -85,7 +85,7 @@ vector<Query4::PersonId> loadSource(const std::string& file) {
   }
 
 int main(int argc, char** argv) {
-   auto usage = "Usage: runBencherSimple <filename> <BFSType> <sourceFile> -W <bWidth> -t <repeat> -f ";
+   auto usage = "Usage: runBencherSimple <filename> <BFSType> <numSources> -W <bWidth> -t <repeat>  -out <outfile> -f ";
    CommandLine P(argc, argv);
 
    if (argc < 4) {
@@ -101,12 +101,13 @@ int main(int argc, char** argv) {
 
    // Load input graphs and sources
    std::string graphFile = argv[1];
-   std::string sourceFile = argv[3];
+  //  std::string sourceFile = argv[3];
    auto personGraph = Graph<Query4::PersonId>::loadFromPath(graphFile);
-   auto sources = loadSource(sourceFile);
+  //  auto sources = loadSource(sourceFile);
 
-   size_t bfsLimit = sources.size();
+   size_t bfsLimit = atoi(argv[3]);
    int numRuns=P.getOptionInt("-t", 3);
+   char* outFile = P.getOptionValue("-out");
 
 
    size_t maxBatchSize;
@@ -177,7 +178,7 @@ int main(int argc, char** argv) {
 
       for(int i=0; i<numRuns; i++) {
          bencher->initTrace(personGraph.numVertices, personGraph.numEdges, numThreads, bfsLimit, bfsType);
-        bencher->runSimple(personGraph, sources, closeness, workers);
+         bencher->runSimple(bfsLimit, personGraph, closeness, workers);
 
          std::cout<<bencher->lastRuntime()<<"ms ";
          std::cout.flush();
@@ -187,9 +188,9 @@ int main(int argc, char** argv) {
       std::cout<<bencher->getMinTrace()<<std::endl;
     
     //  Print the sources and corresponding closeness centrality 
-      for (int i = 0;i<bfsLimit; i++){
-        printf("%u: %lf\n",sources[i], closeness[i]);
-      }
+      // for (int i = 0;i<bfsLimit; i++){
+      //   printf("%u: %lf\n",sources[i], closeness[i]);
+      // }
 
    workers.close();
 
