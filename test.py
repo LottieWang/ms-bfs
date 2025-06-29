@@ -14,12 +14,14 @@ def test_centrality(type_name, k, g, CURRENT_DIR, LOG_DIR, Closeness_DIR):
 	# ground_truth = f"{TR_DIR}/{g}_sym.txt"
 	test_file = f"{CURRENT_DIR}/runBencherSimple"
 	OUT_DIR = f"{LOG_DIR}/msBFS_{type_name}"
-	ANS_DIR = f"{Closeness_DIR_DIR}/msBFS_{type_name}"
+	ANS_DIR = f"{Closeness_DIR}/msBFS_{type_name}"
 	os.makedirs(OUT_DIR, exist_ok=True)
 	os.makedirs(ANS_DIR, exist_ok=True)
 	# repeat = '-t 0'
 	repeat = '' 
-	cmd = f"numactl -i all {test_file} {GRAPH_DIR}/{g}.bin {type_name} -k {k} {repeat} -out {ANS_DIR}/{g}_{k}.txt >> {OUT_DIR}/{g}_{k}.txt"
+	# numa = 'numactl -i all'
+	numa = ''
+	cmd = f"{numa} {test_file} {GRAPH_DIR}/{g}.bin {type_name} -k {k} {repeat} -out {ANS_DIR}/{g}_{k}.txt -f >> {OUT_DIR}/{g}_{k}.txt"
 	subprocess.call(cmd, shell=True)
 def experiment():
 	CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +29,7 @@ def experiment():
 	Closeness_DIR = "/data/lwang323/MS_BFS/Closeness"
 	#   LOG_DIR=f"/data/lwang323/MS_BFS/Ecc"
 	os.makedirs(LOG_DIR, exist_ok=True)
-	os.makedirs(ECC_DIR, exist_ok=True)
+	os.makedirs(Closeness_DIR, exist_ok=True)
 	# type_names = ["1Phase", "2Phase", "Exact"]
 	type_names = [8]
 	batch_sizes = [64, 1024, 4096]
@@ -36,7 +38,7 @@ def experiment():
 		for type_name in type_names:
 			print(f"----test on {type_name}----")
 			for g in graphs:
-				test_centrality(type_name, k, g, CURRENT_DIR, LOG_DIR, ECC_DIR)
+				test_centrality(type_name, k, g, CURRENT_DIR, LOG_DIR, Closeness_DIR)
 
 if __name__ == '__main__':
 	experiment()
