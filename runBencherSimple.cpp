@@ -189,7 +189,6 @@ int main(int argc, char** argv) {
       std::cout<<std::endl;
 
       std::cout<<bencher->getMinTrace()<<std::endl;
-    
       if (P.getOption("-out")) {
          std::ofstream fout(outFile);
          if (!fout.is_open()) {
