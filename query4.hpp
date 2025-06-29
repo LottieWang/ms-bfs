@@ -419,13 +419,9 @@ void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double
    for (unsigned i = 0; i < subgraph.size(); ++i) {
       ids[i] = i;
    }
-  //  std::cout << "subgraph size: " << subgraph.size() << std::endl;
-   // Deterministic random shuffeling
-   RandomNodeOrdering::order(ids, BFSRunnerT::batchSize(), subgraph);
-   // Do final ordering on specified subset
-  //  for (int i = 0; i<sources.size(); i++) {
-  //     std::cout << "Source " << i << ": " << ids[i] << " CC_id: " << subgraph.personComponents[ids[i]] << " CC_size: " << subgraph.componentSizes[ids[i]]<< std::endl;
-  //  }
+
+   std::shuffle(ids.begin(), ids.end(), std::mt19937(0)); 
+
    LOG_PRINT("[Query4] Starting sort "<<tschrono::now());
    // ComponentOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);
    DegreeOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);

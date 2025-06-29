@@ -9,6 +9,9 @@ Following are the instructions to compile and run the source code.
 # Build
 `./compile`
 
+In order to compare the correctness with my code, use gcc version >10.
+
+
 Tested on Ubuntu 14.04 using GCC 4.8.2.
 
 # Usage

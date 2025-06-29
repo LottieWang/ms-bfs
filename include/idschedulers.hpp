@@ -14,10 +14,10 @@
 struct RandomNodeOrdering {
    static void order(std::vector<Query4::PersonId>& ids, size_t /*batchSize*/, const Query4::PersonSubgraph& /*subgraph*/) {
       // Deterministic shuffeling
-      std::random_device rd;
-      std::mt19937 g(rd());
-      g.seed(1987);
-      std::shuffle(ids.begin(), ids.end(), g);     
+      // std::random_device rd;
+      // std::mt19937 g(1987);
+      // g.seed(1987);
+      std::shuffle(ids.begin(), ids.end(), std::mt19937(0));     
    }
 };
 

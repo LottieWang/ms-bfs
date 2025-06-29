@@ -19,9 +19,9 @@ def test_centrality(type_name, k, g, CURRENT_DIR, LOG_DIR, Closeness_DIR):
 	os.makedirs(ANS_DIR, exist_ok=True)
 	# repeat = '-t 0'
 	repeat = '' 
-	# numa = 'numactl -i all'
-	numa = ''
-	cmd = f"{numa} {test_file} {GRAPH_DIR}/{g}.bin {type_name} -k {k} {repeat} -out {ANS_DIR}/{g}_{k}.txt -f >> {OUT_DIR}/{g}_{k}.txt"
+	numa = 'numactl -i all'
+	# numa = ''
+	cmd = f"{numa} {test_file} {GRAPH_DIR}/{g}.bin {type_name} {k} -f {repeat} -out {ANS_DIR}/{g}_{k}.txt -f >> {OUT_DIR}/{g}_{k}.txt"
 	subprocess.call(cmd, shell=True)
 def experiment():
 	CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
