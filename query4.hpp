@@ -421,6 +421,9 @@ void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double
    }
 
    std::shuffle(ids.begin(), ids.end(), std::mt19937(0)); 
+  //  for (int i =0 ; i< sources.size(); i++) {
+  //     std::cout << "source "<< i <<": "<< ids[i] << " CC_id: " << subgraph.personComponents[ids[i]]<< std::endl;
+  //  }
 
    LOG_PRINT("[Query4] Starting sort "<<tschrono::now());
    // ComponentOrdering::order(ids, maxBfs, BFSRunnerT::batchSize(), subgraph);
