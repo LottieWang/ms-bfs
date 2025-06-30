@@ -480,10 +480,10 @@ void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double
    Executor executor(scheduler,0, false);
    executor.run();
 
+   scheduler.waitAllFinished();
+
    inner_T.next("msBFS");
    runtimeOut = tschrono::now() - start;
-
-   scheduler.waitAllFinished();
    LOG_PRINT("[Query4] All tasks finished");
 
 //    std::string resultStr = std::string(resultChar);
