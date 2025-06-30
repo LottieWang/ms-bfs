@@ -26,7 +26,7 @@ ifeq ($(CC),g++)
 else
 	COMPILER_FLAGS=
 endif
-BASE_FLAGS=-g -std=c++11 -W -Wall -Wextra -pedantic $(MATH_FLAGS) -funroll-all-loops -fno-omit-frame-pointer $(COMPILER_FLAGS) -I$(BOOST_INC)
+BASE_FLAGS=-g -std=c++20 -W -Wall -Wextra -pedantic $(MATH_FLAGS) -funroll-all-loops -fno-omit-frame-pointer $(COMPILER_FLAGS) -I$(BOOST_INC)
 
 LOCAL_ARCH=-march=native
 RELEASE_ARCH=-march=native

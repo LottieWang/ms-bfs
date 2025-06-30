@@ -20,6 +20,7 @@
 #include "include/bfs/batch128.hpp"
 #include "include/bfs/batch256.hpp"
 #include "include/bfs/statistics.hpp"
+#include "include/get_time.hpp"
 
 #include <mutex>
 #include <cmath>
@@ -413,6 +414,7 @@ std::string runBFS(const uint32_t k, const Query4::PersonSubgraph& subgraph, Wor
 template<typename BFSRunnerT>
 void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double>& closeness, Workers& workers, uint64_t& runtimeOut, vector<Query4::PersonId>& sources
    ) {
+    parlay::internal::timer inner_T("inner ms-BFS",true);
     uint64_t maxBfs = k;
     // Determine bfs order
    std::vector<Query4::PersonId> ids(subgraph.size());
@@ -434,7 +436,8 @@ void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double
    for (int i = 0; i < sources.size(); i++) {
       sources[i]= ids[i];
    }
-   LOG_PRINT("[Query4] Finished sort "<<tschrono::now());
+   inner_T.next("selecting sources");
+  //  LOG_PRINT("[Query4] Finished sort "<<tschrono::now());
    
    const auto start = tschrono::now();
 
@@ -477,6 +480,7 @@ void runBFS(const Query4::PersonSubgraph& subgraph, size_t k, std::vector<double
    Executor executor(scheduler,0, false);
    executor.run();
 
+   inner_T.next("msBFS");
    runtimeOut = tschrono::now() - start;
 
    scheduler.waitAllFinished();

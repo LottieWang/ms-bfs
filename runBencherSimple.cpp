@@ -3,6 +3,7 @@
 //Code must not be used, distributed, without written consent by the authors
 #include "include/bench.hpp"
 #include "include/TraceStats.hpp"
+#include "include/get_time.hpp"
 #include "parseCommandLine.h"
 #include <fstream>
 #include <iomanip>
@@ -86,7 +87,7 @@ vector<Query4::PersonId> loadSource(const std::string& file) {
   }
 
 int main(int argc, char** argv) {
-   auto usage = "Usage: runBencherSimple <filename> <BFSType> <numSources> -W <bWidth> -t <repeat>  -out <outfile> -f ";
+   auto usage = "Usage: runBencherSimple <filename> <BFSType> -k <numSources> -W <bWidth> -t <repeat>  -out <outfile> -f ";
    CommandLine P(argc, argv);
 
    if (argc < 4) {
@@ -107,7 +108,7 @@ int main(int argc, char** argv) {
     //  auto sources = loadSource(sourceFile);
 
     size_t bfsLimit = P.getOptionInt("-k", 64);
-    int numRuns=P.getOptionInt("-t", 3);
+    int numRuns=P.getOptionInt("-t", 4);
     char* outFile = P.getOptionValue("-out");
     if(bfsLimit>personGraph.size()) {
       bfsLimit=personGraph.size();
@@ -178,17 +179,19 @@ int main(int argc, char** argv) {
       LOG_PRINT("[Main] bfsLimit " << bfsLimit);
       vector<double> closeness(bfsLimit,0.0);
       vector<Query4::PersonId> sources(bfsLimit);
-
+      parlay::internal::timer CC_T("ms-bfs Closeness",true);
       for(int i=0; i<numRuns; i++) {
          bencher->initTrace(personGraph.numVertices, personGraph.numEdges, numThreads, bfsLimit, bfsType);
+         CC_T.start();
          bencher->runSimple(bfsLimit, personGraph, closeness, workers, sources);
-
-         std::cout<<bencher->lastRuntime()<<"ms ";
-         std::cout.flush();
+         auto end = std::chrono::steady_clock::now();
+         CC_T.next("");
+        //  std::cout<< "msBFS RunTime (ms): "<< bencher->lastRuntime() <<std::endl;
+        //  std::cout.flush();
       }
-      std::cout<<std::endl;
+      // std::cout<<std::endl;
 
-      std::cout<<bencher->getMinTrace()<<std::endl;
+      // std::cout<<bencher->getMinTrace()<<std::endl;
       if (P.getOption("-out")) {
          std::ofstream fout(outFile);
          if (!fout.is_open()) {

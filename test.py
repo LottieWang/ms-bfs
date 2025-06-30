@@ -21,7 +21,7 @@ def test_centrality(type_name, k, g, CURRENT_DIR, LOG_DIR, Closeness_DIR):
 	repeat = '' 
 	numa = 'numactl -i all'
 	# numa = ''
-	cmd = f"{numa} {test_file} {GRAPH_DIR}/{g}.bin {type_name} {k} -f {repeat} -out {ANS_DIR}/{g}_{k}.txt -f >> {OUT_DIR}/{g}_{k}.txt"
+	cmd = f"{numa} {test_file} {GRAPH_DIR}/{g}.bin {type_name} -k {k} -f {repeat} -out {ANS_DIR}/{g}_{k}.txt -f >> {OUT_DIR}/{g}_{k}.txt"
 	subprocess.call(cmd, shell=True)
 def experiment():
 	CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,7 +32,7 @@ def experiment():
 	os.makedirs(Closeness_DIR, exist_ok=True)
 	# type_names = ["1Phase", "2Phase", "Exact"]
 	type_names = [8]
-	batch_sizes = [64, 1024, 4096]
+	batch_sizes = [1024, 4096]
 	for k in batch_sizes:
 		print(f"--------test on batch_size {k}---------")
 		for type_name in type_names:
