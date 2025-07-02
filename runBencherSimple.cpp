@@ -95,7 +95,9 @@ int main(int argc, char** argv) {
     abort();
    }
    
-   size_t numThreads = std::thread::hardware_concurrency()/2;
+  //  size_t numThreads = std::thread::hardware_concurrency()/2;
+   size_t num_processors = std::thread::hardware_concurrency()/2; 
+   size_t numThreads = P.getOptionInt("-p", num_processors);
    printf("hardware_concurrency: %d\n",std::thread::hardware_concurrency());
    
 

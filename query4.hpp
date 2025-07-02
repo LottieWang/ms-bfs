@@ -254,6 +254,7 @@ public:
       #endif
    {
       batchSize = BFSRunnerT::batchSize();
+      std::cout << "MorselTaskSimple, batchSize: " << batchSize << std::endl;
       if(batchSize>getMaxMorselBatchSize()) {
          batchSize=getMaxMorselBatchSize();
       }

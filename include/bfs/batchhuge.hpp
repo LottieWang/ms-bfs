@@ -82,6 +82,9 @@ struct HugeBatchBfs {
       , BatchStatistics& statistics
       #endif
       ) {
+      
+      std::cout << "batchhuge, Batch size: " << BATCH_BITS_COUNT << std::endl;
+      std::cout << "batchhuge, bfsData.size() " << bfsData.size() << std::endl;
 
       const auto subgraphSize = subgraph.size();
 
@@ -145,6 +148,11 @@ struct HugeBatchBfs {
 
       // Run iterations
       do {
+        std::cout << "batchBFS, round: " << nextDistance << std::endl;
+        std::cout << "topDown: " << topDown << std::endl;
+        std::cout << "frontierSize: " << frontierSize << std::endl;
+        std::cout << "Queries to process: " << queriesToProcess << std::endl;
+
          size_t startTime = tschrono::now();
          Bitset* const toVisit = visitLists[curToVisitQueue];
          Bitset* const nextToVisit = visitLists[1-curToVisitQueue];
@@ -157,6 +165,7 @@ struct HugeBatchBfs {
          std::pair<uint32_t, uint64_t> frontierInfo;
          if(topDown) {
             if(visitNeighbors <= unexploredEdges / alpha) {
+              std::cout << "  forward batch round" << std::endl;
                frontierInfo = runBatchRound(subgraph, startPerson, subgraphSize, toVisit, nextToVisit, seen, batchDist, processQuery
                   #if defined(STATISTICS)
                   , statistics, nextDistance
@@ -166,6 +175,7 @@ struct HugeBatchBfs {
                   );
                topDown = true;
             } else {
+              std::cout << "  backward batch round" << std::endl;
                frontierInfo = runBatchRoundRev(subgraph, startPerson, subgraphSize, toVisit, nextToVisit, seen, batchDist, processQuery
                   #if defined(STATISTICS)
                   , statistics, nextDistance
@@ -228,7 +238,14 @@ struct HugeBatchBfs {
          stats.addRoundDuration(nextDistance, (tschrono::now()-startTime));
 
          if(queriesToProcess==0) {
+            std::cout << "queiesToProcess is 0, break" << std::endl;
+            std::cout << "frontierSize: " << frontierSize << std::endl;
             break;
+         }
+
+         if (frontierSize ==0){
+          std::cout << "frontier size is 0, break" << std::endl;
+          break;
          }
          nextDistance++;
 
@@ -646,6 +663,7 @@ struct HugeBatchBfs {
       if(BitBaseOp<bit_t>::notZero(processQuery.data[field] & BitBaseOp<bit_t>::getSetMask(field_bit))) {
          bfsData.totalReachable += numDiscovered;
          bfsData.totalDistances += numDiscovered*distance;
+         std::cout << "pos: " << pos << ", numDiscovered: " << numDiscovered << ", bfsData.componentSize-1: " << bfsData.componentSize-1 << std::endl;
 
          if((bfsData.componentSize-1)==bfsData.totalReachable|| numDiscovered==0) {
             processQuery.data[field] = BitBaseOp<bit_t>::andNot(processQuery.data[field], BitBaseOp<bit_t>::getSetMask(field_bit));
