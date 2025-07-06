@@ -44,7 +44,8 @@ private:
 
    BitBaseOp() {
       for (unsigned i = 0; i < sizeof(bit_t)*8; ++i) {
-         set[i] = pow(((bit_t)2),i);
+        //  set[i] = pow(((bit_t)2),i);
+        set[i] = static_cast<bit_t>(1) << i;
       }
    }
    static const BitBaseOp masks;

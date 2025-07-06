@@ -2,7 +2,7 @@
 ifeq ($(CC),cc)
 	CC=g++
 endif
-CC += -I/home/lwang323/ms-bfs/boost  # Add the Boost include path
+CC += -w -mavx -I/home/lwang323/ms-bfs/boost  # Add the Boost include path
 
 
 BOOSTDIR=./boost
@@ -26,7 +26,8 @@ ifeq ($(CC),g++)
 else
 	COMPILER_FLAGS=
 endif
-BASE_FLAGS=-g -std=c++20 -W -Wall -Wextra -pedantic $(MATH_FLAGS) -funroll-all-loops -fno-omit-frame-pointer $(COMPILER_FLAGS) -I$(BOOST_INC)
+# -W -Wall -Wextra
+BASE_FLAGS=-g -std=c++17 -mavx  -pedantic $(MATH_FLAGS) -funroll-all-loops -fno-omit-frame-pointer $(COMPILER_FLAGS) -I$(BOOST_INC)
 
 LOCAL_ARCH=-march=native
 RELEASE_ARCH=-march=native

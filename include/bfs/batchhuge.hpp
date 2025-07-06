@@ -10,6 +10,7 @@
 #include "bitops.hpp"
 #include <array>
 #include <cstring>
+#include <iomanip>
 
 #define SORTED_NEIGHBOR_PROCESSING
 #define DO_PREFETCH
@@ -48,6 +49,33 @@ struct BatchBits {
       return sum;
    }
    #endif
+  // void printHex() const {
+  //     for (unsigned i = 0; i < width; ++i) {
+  //        // Use `if constexpr` with a general type trait.
+  //        // This condition checks if `bit_t` is NOT a simple scalar type (like int, float, pointer).
+  //        // This will be true for __vector types, __m256i, etc.
+  //        if constexpr (!std::is_scalar_v<bit_t>) {
+  //           // --- GENERAL VECTOR PATH ---
+  //
+  //           // Define the underlying element type (e.g., long long)
+  //           using element_t = decltype(data[i][0]);
+            
+  //           // Calculate how many elements are in the vector
+  //           constexpr size_t elements_per_vector = sizeof(bit_t) / sizeof(element_t);
+
+  //           // Loop through the elements inside the vector using the subscript operator
+  //           for (size_t j = 0; j < elements_per_vector; ++j) {
+  //               std::cout << std::hex << std::setw(sizeof(element_t) * 2) << std::setfill('0')
+  //                         << static_cast<uint64_t>(data[i][j]) << " ";
+  //           }
+  //        } else {
+  //           // --- SCALAR PATH (for uint64_t, uint32_t, etc.) ---
+  //           std::cout << std::hex << std::setw(sizeof(bit_t) * 2) << std::setfill('0')
+  //                     << static_cast<uint64_t>(data[i]) << " ";
+  //        }
+  //     }
+  //     std::cout << std::dec << std::endl;
+  //  }
 
    void negate() {
       for (unsigned i = 0; i < width; ++i) {
@@ -83,11 +111,11 @@ struct HugeBatchBfs {
       #endif
       ) {
       
-      std::cout << "batchhuge, Batch size: " << BATCH_BITS_COUNT << std::endl;
-      std::cout << "batchhuge, bfsData.size() " << bfsData.size() << std::endl;
+      // std::cout << "batchhuge, Batch size: " << BATCH_BITS_COUNT << std::endl;
+      // std::cout << "batchhuge, bfsData.size() " << bfsData.size() << std::endl;
 
       const auto subgraphSize = subgraph.size();
-
+      // std::cout << "batchhuge, subgraphSize: " << subgraphSize << std::endl;
       // Initialize visit lists
       std::array<Bitset*,2> visitLists;
       for(int a=0; a<2; a++) {
@@ -134,7 +162,8 @@ struct HugeBatchBfs {
       // Initialize iteration workstate
       Bitset processQuery;
       processQuery.negate();
-
+      // std::cout << "Initial processQuery: " << std::endl;
+      // processQuery.printHex();
       uint32_t queriesToProcess=numQueries;
       alignas(64) uint32_t numDistDiscovered[BATCH_BITS_COUNT];
       memset(numDistDiscovered,0,BATCH_BITS_COUNT*sizeof(uint32_t));
@@ -148,11 +177,12 @@ struct HugeBatchBfs {
 
       // Run iterations
       do {
-        std::cout << "batchBFS, round: " << nextDistance << std::endl;
-        std::cout << "topDown: " << topDown << std::endl;
-        std::cout << "frontierSize: " << frontierSize << std::endl;
-        std::cout << "Queries to process: " << queriesToProcess << std::endl;
-
+        // std::cout << "batchBFS, round: " << nextDistance << std::endl;
+        // std::cout << "topDown: " << topDown << std::endl;
+        // std::cout << "frontierSize: " << frontierSize << std::endl;
+        // std::cout << "Queries to process: " << queriesToProcess << std::endl;
+        // std::cout << "processQuery: " << std::endl;
+        // processQuery.printHex();
          size_t startTime = tschrono::now();
          Bitset* const toVisit = visitLists[curToVisitQueue];
          Bitset* const nextToVisit = visitLists[1-curToVisitQueue];
@@ -165,7 +195,7 @@ struct HugeBatchBfs {
          std::pair<uint32_t, uint64_t> frontierInfo;
          if(topDown) {
             if(visitNeighbors <= unexploredEdges / alpha) {
-              std::cout << "  forward batch round" << std::endl;
+              // std::cout << "  forward batch round" << std::endl;
                frontierInfo = runBatchRound(subgraph, startPerson, subgraphSize, toVisit, nextToVisit, seen, batchDist, processQuery
                   #if defined(STATISTICS)
                   , statistics, nextDistance
@@ -175,7 +205,7 @@ struct HugeBatchBfs {
                   );
                topDown = true;
             } else {
-              std::cout << "  backward batch round" << std::endl;
+              // std::cout << "  backward batch round" << std::endl;
                frontierInfo = runBatchRoundRev(subgraph, startPerson, subgraphSize, toVisit, nextToVisit, seen, batchDist, processQuery
                   #if defined(STATISTICS)
                   , statistics, nextDistance
@@ -238,15 +268,15 @@ struct HugeBatchBfs {
          stats.addRoundDuration(nextDistance, (tschrono::now()-startTime));
 
          if(queriesToProcess==0) {
-            std::cout << "queiesToProcess is 0, break" << std::endl;
-            std::cout << "frontierSize: " << frontierSize << std::endl;
+            // std::cout << "queiesToProcess is 0, break" << std::endl;
+            // std::cout << "frontierSize: " << frontierSize << std::endl;
             break;
          }
 
-         if (frontierSize ==0){
-          std::cout << "frontier size is 0, break" << std::endl;
-          break;
-         }
+        //  if (frontierSize ==0){
+        //   std::cout << "frontier size is 0, break" << std::endl;
+        //   break;
+        //  }
          nextDistance++;
 
          // As long as not all queries are finished we have to find s.th. every round
@@ -299,7 +329,9 @@ struct HugeBatchBfs {
       std::vector<uint64_t> xx(513);
       #endif
 
-
+      // std::cout << "batchhuge, runBatchRound, startPerson: " << startPerson << std::endl;
+      // std::cout << "before edge processing, processQuery: ";
+      // processQuery.printHex();
       for (PersonId curPerson = startPerson; curPerson<limit; ++curPerson) {
          auto curVisit = visitList[curPerson];
 
@@ -367,7 +399,7 @@ struct HugeBatchBfs {
                nextVisitList[*friendsBounds.first].data[i] |= curVisit.data[i];
             }
             ++friendsBounds.first;
-      }
+          }
          for(int i=0; i<width; i++) {
             visitList[curPerson].data[i] = BitBaseOp<bit_t>::zero();
          }
@@ -377,6 +409,9 @@ struct HugeBatchBfs {
       uint32_t frontierSize = 0;
       uint64_t nextVisitNeighbors = 0;
       #endif
+      // std::cout << "after edge processing, processQuery: ";
+      // processQuery.printHex();
+
       for (PersonId curPerson = 0; curPerson<limit; ++curPerson) {
          #ifdef BI_DIRECTIONAl
          bool nextVisitNonzero=false;
@@ -403,6 +438,8 @@ struct HugeBatchBfs {
          }
          #endif
       }
+      // std::cout << "after frontier map, processQuery: " ;
+      // processQuery.printHex();
 
       #ifdef TRACE
       {
@@ -659,19 +696,30 @@ struct HugeBatchBfs {
        BatchBFSdata& bfsData, const uint32_t distance, uint32_t& queriesToProcess) {
       auto field = pos/Bitset::TYPE_BITS_COUNT;
       auto field_bit = pos-(field*Bitset::TYPE_BITS_COUNT);
-
+      // if constexpr (std::is_scalar_v<bit_t>){
+      // std::cout << "BitBaseOp<bit_t>::getSetMask(pos): " << std::hex << std::setw(sizeof(bit_t) * 2) << std::setfill('0') << static_cast<uint64_t>(BitBaseOp<bit_t>::getSetMask(field_bit))<<std::dec<< std::endl;
+      // }
       if(BitBaseOp<bit_t>::notZero(processQuery.data[field] & BitBaseOp<bit_t>::getSetMask(field_bit))) {
          bfsData.totalReachable += numDiscovered;
          bfsData.totalDistances += numDiscovered*distance;
-         std::cout << "pos: " << pos << ", numDiscovered: " << numDiscovered << ", bfsData.componentSize-1: " << bfsData.componentSize-1 << std::endl;
+        //  std::cout << "pos: " << pos << ", numDiscovered: " << numDiscovered << ", bfsData.componentSize-1: " << bfsData.componentSize-1 << ", bfsData.totalReachable: " << bfsData.totalReachable<< std::endl;
 
          if((bfsData.componentSize-1)==bfsData.totalReachable|| numDiscovered==0) {
+          //  if constexpr (std::is_scalar_v<bit_t>){
+          //   auto a = processQuery.data[field];
+          //   auto b = BitBaseOp<bit_t>::getSetMask(field_bit);
+
+          //   std::cout <<  "processQuery.data[field]: " << std::hex << std::setw(sizeof(bit_t) * 2) << std::setfill('0') << static_cast<uint64_t>(a) <<std::dec<< std::endl;
+          //   std::cout << ", BitBaseOp<bit_t>::getSetMask(field_bit): " << std::hex << std::setw(sizeof(bit_t) * 2) << std::setfill('0') << static_cast<uint64_t>(b)<<std::dec<< std::endl;
+          //   std::cout << ", BitBaseOp<bit_t>::andNot " << std::hex << std::setw(sizeof(bit_t) * 2) << std::setfill('0') << static_cast<uint64_t>(BitBaseOp<bit_t>::andNot(a,b)) << std::dec <<std::endl;
+          //  }
             processQuery.data[field] = BitBaseOp<bit_t>::andNot(processQuery.data[field], BitBaseOp<bit_t>::getSetMask(field_bit));
             queriesToProcess--;
          }
       } else {
          assert(numDiscovered == 0);
       }
+      // processQuery.printHex();
    }
 };
 
