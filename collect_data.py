@@ -27,8 +27,8 @@ def collect_average(file_in, key_words, repeat=4):
 	return data
 
 def collect_kExact(k,w):
-	print("Collecting data in kBFS 1Phase")
-	LOG_DIR= f"{CURRENT_DIR}/log/msBFS_8_{w}"
+	print(f"Collecting data in Closeness for k = {k}")
+	LOG_DIR= f"{CURRENT_DIR}/log/msBFS_64_{w}"
 	# OUT_FILE=f"{CURRENT_DIR}/../result/exp4.csv"
 	data=dict()
 	data["Data"]=graphs
@@ -52,5 +52,5 @@ def collect_kExact(k,w):
 if __name__ == "__main__":
 	CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 	w=1
-	for k in [8192]:
+	for k in [64, 256, 1024, 4096, 16384]:
 		collect_kExact(k,w)

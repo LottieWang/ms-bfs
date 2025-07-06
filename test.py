@@ -31,11 +31,11 @@ def experiment():
 	#   LOG_DIR=f"/data/lwang323/MS_BFS/Ecc"
 	os.makedirs(LOG_DIR, exist_ok=True)
 	os.makedirs(Closeness_DIR, exist_ok=True)
-	# type_names = ["1Phase", "2Phase", "Exact"]
-	type_names = [8]
+	# type_names = [8,16,32,64]
+	type_names = [64]
 	# batch_sizes = [64, 1024, 4096]
 	# batch_sizes = [64, 1024, 4096, 8192, 16384]
-	batch_sizes = [8192]
+	batch_sizes = [64, 256, 1024, 4096, 16384]
 	# width = 1 or 64
 	width = 1
 	for k in batch_sizes:
